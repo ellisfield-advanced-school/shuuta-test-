@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中学初級・4択英単語テスト</title>
+    <title>高校生向け・4択英単語テスト</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -25,7 +25,7 @@
             text-align: center;
         }
         h1 { font-size: 20px; color: #333; margin-top: 0; }
-        .japanese { font-size: 28px; font-weight: bold; color: #333; margin: 20px 0; }
+        .japanese { font-size: 24px; font-weight: bold; color: #333; margin: 20px 0; word-break: break-all; }
         .progress { color: #666; font-size: 14px; margin-bottom: 15px; }
         .btn {
             background-color: white;
@@ -65,238 +65,193 @@
  
 <div class="quiz-container">
     <div id="category-screen">
-    <div style="font-size: 16px; color: #555; font-weight: bold; margin-bottom: 5px; text-align: center;">エリスフィールド進学会</div>
-        <h1>テストするカテゴリを選んでね</h1>
+        <div style="font-size: 16px; color: #555; font-weight: bold; margin-bottom: 5px; text-align: center;">エリスフィールド進学会</div>
+        <h1>テストするカテゴリを選んでください</h1>
         <div id="category-list"></div>
     </div>
  
-  <div id="quiz-screen" style="display: none;">
-    <div class="progress" id="progress">第 1 問 / 全 10 問</div>
-    <div class="japanese" id="japanese-word">日本語</div>
+    <div id="quiz-screen" style="display: none;">
+        <div class="progress" id="progress">第 1 問 / 全 10 問</div>
+        <div class="japanese" id="japanese-word">日本語</div>
 
-    <button onclick="speakWord()" class="btn"
-        style="margin-bottom:20px;max-width:200px;margin-left:auto;
-        margin-right:auto;padding:10px;font-size:16px;">
-        🔊 発音を聞く
-    </button>
+        <button onclick="speakWord()" class="btn"
+            style="margin-bottom:20px;max-width:200px;margin-left:auto;
+            margin-right:auto;padding:10px;font-size:16px;">
+            🔊 発音を聞く
+        </button>
 
-    <div id="choices-list"></div>
+        <div id="choices-list"></div>
 
-    <div class="result-message" id="result-message"></div>
+        <div class="result-message" id="result-message"></div>
 
-    <button onclick="nextQuestion()" id="next-btn"
-        class="action-btn" style="display:none;">
-        次へ進む
-    </button>
-</div>
+        <button onclick="nextQuestion()" id="next-btn" class="action-btn" style="display:none;">
+            次へ進む
+        </button>
+    </div>
 
-<div id="result-screen" style="display: none;">
-    <h2>テスト終了！</h2>
-    <p id="final-score" style="font-size: 18px; font-weight: bold;"></p>
-    <button onclick="showCategoryScreen()" class="action-btn">
-        別のテストを選ぶ
-    </button>
+    <div id="result-screen" style="display: none;">
+        <h2>テスト終了！</h2>
+        <p id="final-score" style="font-size: 18px; font-weight: bold;"></p>
+        <button onclick="showCategoryScreen()" class="action-btn">
+            別のテストを選ぶ
+        </button>
+    </div>
 </div>
  
 <script>
+// ★ 高校生向けのサンプルデータ（必要に応じてここを自由に追加・編集してください）
 const wordData = {
-    "数字 (1〜10)": [
-        { english: "one", japanese: "1" }, { english: "two", japanese: "2" }, 
-        { english: "three", japanese: "3" }, { english: "four", japanese: "4" }, 
-        { english: "five", japanese: "5" }, { english: "six", japanese: "6" },
-        { english: "seven", japanese: "7" }, { english: "eight", japanese: "8" }, 
-        { english: "nine", japanese: "9" }, { english: "ten", japanese: "10" }
+    "共通テスト頻出動詞": [
+        { english: "analyze", japanese: "〜を分析する" },
+        { english: "consequence", japanese: "結果、影響" },
+        { english: "critical", japanese: "批判的な、重大な" },
+        { english: "maintain", japanese: "〜を維持する、主張する" },
+        { english: "evaluate", japanese: "〜を評価する" },
+        { english: "acquire", japanese: "〜を習得する、獲得する" },
+        { english: "contribute", japanese: "貢献する、寄付する" },
+        { english: "establish", japanese: "〜を設立する、確立する" },
+        { english: "purchase", japanese: "〜を購入する" },
+        { english: "accomplish", japanese: "〜を成し遂げる" }
     ],
- 
+    "医療・動植物（国公立・私大レベル）": [
+        { english: "symptom", japanese: "症状、兆候" },
+        { english: "diagnose", japanese: "〜を診断する" },
+        { english: "vaccine", japanese: "ワクチン" },
+        { english: "immune", japanese: "免疫のある" },
+        { english: "organism", japanese: "有機体、生物" }
+    ]
 };
  
-let currentCategory = ""; let currentWords = []; let currentIndex = 0; let score = 0; let isAnswered = false;
+let currentCategory = ""; 
+let currentWords = []; 
+let currentIndex = 0; 
+let score = 0; 
+let isAnswered = false;
+
 function showCategoryScreen() {
     document.getElementById("category-screen").style.display = "block";
     document.getElementById("quiz-screen").style.display = "none"; 
     document.getElementById("result-screen").style.display = "none";
+    
     const catListDiv = document.getElementById("category-list");
     catListDiv.innerHTML = "";
+    
+    // カテゴリを画面に生成
     Object.keys(wordData).forEach(category => {
-        const btn = document.createElement("button"); btn.className = "btn"; btn.innerText = category; btn.onclick = () => startQuiz(category); catListDiv.appendChild(btn);
+        const btn = document.createElement("button"); 
+        btn.className = "btn"; 
+        btn.innerText = category; 
+        btn.onclick = () => startQuiz(category); 
+        catListDiv.appendChild(btn);
     });
 }
+
 function startQuiz(category) {
-    currentCategory = category; currentWords = [...wordData[category]].sort(() => Math.random() - 0.5);
+    currentCategory = category; 
+    currentWords = [...wordData[category]].sort(() => Math.random() - 0.5);
+    
+    // 最大10問に出題数を制限
     if (currentWords.length > 10) { currentWords = currentWords.slice(0, 10); }
-    currentIndex = 0; score = 0;
+    
+    currentIndex = 0; 
+    score = 0;
+    
     document.getElementById("category-screen").style.display = "none";
-    document.getElementById("quiz-screen").style.display = "block"; showQuestion();
+    document.getElementById("quiz-screen").style.display = "block"; 
+    showQuestion();
 }
+
 function showQuestion() {
     isAnswered = false;
     document.getElementById("next-btn").style.display = "none";
     document.getElementById("result-message").innerText = "";
+    
     const currentQuestion = currentWords[currentIndex];
-    document.getElementById("progress").innerText = `第 ${currentIndex + 1} 問 / 全 ${currentWords.length} 問`; document.getElementById("japanese-word").innerHTML = currentQuestion.japanese;
-    const choices = makeChoices(currentQuestion.english, wordData[currentCategory]); const choicesListDiv = document.getElementById("choices-list"); choicesListDiv.innerHTML = "";
+    document.getElementById("progress").innerText = `第 ${currentIndex + 1} 問 / 全 ${currentWords.length} 問`; 
+    document.getElementById("japanese-word").innerHTML = currentQuestion.japanese;
+    
+    // 4択の選択肢を作成
+    const choices = makeChoices(currentQuestion.english, wordData[currentCategory]); 
+    const choicesListDiv = document.getElementById("choices-list"); 
+    choicesListDiv.innerHTML = "";
+    
     choices.forEach(choice => {
-        const btn = document.createElement("button"); btn.className = "btn choice-btn"; btn.innerText = choice; btn.onclick = () => checkAnswer(btn, choice, currentQuestion.english); choicesListDiv.appendChild(btn);
+        const btn = document.createElement("button"); 
+        btn.className = "btn choice-btn"; 
+        btn.innerText = choice; 
+        btn.onclick = () => checkAnswer(btn, choice, currentQuestion.english); 
+        choicesListDiv.appendChild(btn);
     });
 }
+
+// 4択のダミー選択肢を生成するロジック
 function makeChoices(correctAnswer, allCategoryWords) {
-    const allEnglish = allCategoryWords.map(w => w.english); let dummies = allEnglish.filter(eng => eng !== correctAnswer); dummies.sort(() => Math.random() - 0.5); let chosenDummies = dummies.slice(0, 3);
-    while (chosenDummies.length < 3) { chosenDummies.push("apple", "book", "desk", "test"); }
+    const allEnglish = allCategoryWords.map(w => w.english); 
+    let dummies = allEnglish.filter(eng => eng !== correctAnswer); 
+    dummies.sort(() => Math.random() - 0.5); 
+    let chosenDummies = dummies.slice(0, 3);
+    
+    // カテゴリ内の単語が4つ未満の場合の固定ダミー
+    while (chosenDummies.length < 3) { 
+        chosenDummies.push("analyze", "maintain", "significant", "consequence"); 
+    }
+    
     let finalChoices = [correctAnswer, ...chosenDummies.slice(0, 3)];
-    finalChoices.sort(() => Math.random() - 0.5); return finalChoices;
+    return finalChoices.sort(() => Math.random() - 0.5);
 }
+
 function checkAnswer(clickedBtn, selected, correct) {
-    if (isAnswered) return; isAnswered = true; const choiceButtons = document.querySelectorAll(".choice-btn"); const resultMsg = document.getElementById("result-message");
+    if (isAnswered) return; 
+    isAnswered = true; 
+    
+    const choiceButtons = document.querySelectorAll(".choice-btn"); 
+    const resultMsg = document.getElementById("result-message");
+    
     if (selected === correct) {
-        clickedBtn.classList.add("correct"); resultMsg.innerText = "⭕ 正解！"; resultMsg.style.color = "#2ecc71"; score++; 
+        clickedBtn.classList.add("correct"); 
+        resultMsg.innerText = "⭕ 正解！"; 
+        resultMsg.style.color = "#2ecc71"; 
+        score++; 
     } else { 
-        clickedBtn.classList.add("incorrect"); resultMsg.innerText = `❌ 不正解！ 正解は: ${correct}`; resultMsg.style.color = "#e74c3c";
-        choiceButtons.forEach(btn => { if (btn.innerText === correct) { btn.classList.add("correct"); } }); 
+        clickedBtn.classList.add("incorrect"); 
+        resultMsg.innerText = `❌ 不正解！ 正解は: ${correct}`; 
+        resultMsg.style.color = "#e74c3c";
+        choiceButtons.forEach(btn => { 
+            if (btn.innerText === correct) { btn.classList.add("correct"); } 
+        }); 
     }
     document.getElementById("next-btn").style.display = "block";
 }
-function nextQuestion() { currentIndex++; if (currentIndex < currentWords.length) { showQuestion(); } else { showResult(); } }
+
+function nextQuestion() { 
+    currentIndex++; 
+    if (currentIndex < currentWords.length) { 
+        showQuestion(); 
+    } else { 
+        showResult(); 
+    } 
+}
+
 function showResult() {
     document.getElementById("quiz-screen").style.display = "none";
     document.getElementById("result-screen").style.display = "block";
-    document.getElementById("final-score").innerText =
-        `${currentWords.length} 問中 ${score} 問 正解！`;
-}
-showCategoryScreen();
-
-// --- 3. 選択肢（4択）作成ロジックの最適化 ---
-const originalMakeChoices = makeChoices;
-makeChoices = function(correctAnswer, allCategoryWords) {
-    const specialCategories = ["不規則動詞 (過去形)", "不規則動詞 (過去分詞)", "形容詞・副詞 (比較級)", "形容詞・副詞 (最上級)", "身の回りのもの"];
-    if (specialCategories.includes(currentCategory)) {
-        let finalChoices = [correctAnswer];
-        const currentWord = allCategoryWords.find(w => w.english === correctAnswer);
-        if (currentWord && currentWord.ing) {
-            finalChoices.push(currentWord.ing);
-        }
-        let otherWords = allCategoryWords.filter(w => w.english !== correctAnswer);
-        otherWords.sort(() => Math.random() - 0.5);
-        for (let i = 0; i < otherWords.length; i++) {
-            if (finalChoices.length >= 4) break;
-            finalChoices.push(otherWords[i].english);
-        }
-        while (finalChoices.length < 4) {
-            finalChoices.push("went", "made", "computer", "cheaper");
-        }
-        return finalChoices.sort(() => Math.random() - 0.5);
-    }
-    return originalMakeChoices(correctAnswer, allCategoryWords);
-};
-
-// --- 4. 【大改修：確実赤色化】既存の4択描画関数（updateQuizScreen）のボタン生成タイミングを横取りする最安全システム ---
-if (typeof updateQuizScreen === "function") {
-    const originalUpdateQuizScreen = updateQuizScreen;
-    updateQuizScreen = function() {
-        // 先に通常通りクイズ画面を描画させる
-        originalUpdateQuizScreen();
-        
-        // 比較級・最上級のときだけ、描画された直後のボタンを確実にHTML書き換え
-        if (currentCategory === "形容詞・副詞 (比較級)" || currentCategory === "形容詞・副詞 (最上級)") {
-            const buttons = document.querySelectorAll("#choices-container button, .choice-button");
-            buttons.forEach(btn => {
-                let txt = btn.textContent || btn.innerText;
-                if (!txt) return;
-                
-                let htmlResult = txt;
-                const irregulars = ["better", "worse", "less", "best", "worst", "least"];
-                let isIrregular = false;
-                
-                irregulars.forEach(irr => {
-                    if (txt === irr || txt === "the " + irr) {
-                        htmlResult = htmlResult.replace(irr, `<span style="color: red; font-weight: bold;">${irr}</span>`);
-                        isIrregular = true;
-                    }
-                });
-                
-                if (!isIrregular) {
-                    if (txt.includes("more ") || txt.includes("most ")) {
-                        htmlResult = htmlResult.replace("more", '<span style="color: red; font-weight: bold;">more</span>');
-                        htmlResult = htmlResult.replace("most", '<span style="color: red; font-weight: bold;">most</span>');
-                    } else {
-                        if (txt.endsWith("est")) {
-                            if (txt.endsWith("ggest")) htmlResult = txt.slice(0, -5) + '<span style="color: red; font-weight: bold;">ggest</span>';
-                            else if (txt.endsWith("ttest")) htmlResult = txt.slice(0, -5) + '<span style="color: red; font-weight: bold;">ttest</span>';
-                            else htmlResult = txt.slice(0, -3) + '<span style="color: red; font-weight: bold;">est</span>';
-                        } else if (txt.endsWith("er")) {
-                            if (txt.endsWith("gger")) htmlResult = txt.slice(0, -4) + '<span style="color: red; font-weight: bold;">gger</span>';
-                            else if (txt.endsWith("tter")) htmlResult = txt.slice(0, -4) + '<span style="color: red; font-weight: bold;">tter</span>';
-                            else htmlResult = txt.slice(0, -2) + '<span style="color: red; font-weight: bold;">er</span>';
-                        }
-                    }
-                }
-                btn.innerHTML = htmlResult;
-            });
-        }
-    };
+    document.getElementById("final-score").innerText = `${currentWords.length} 問中 ${score} 問 正解！`;
 }
 
-// --- 5. カテゴリの並び順制御（「動物」と「体」の間に「身の回りのもの」を配置） ---
-    if (typeof showCategoryScreen === "function") {
-    const originalShowCategoryScreen = showCategoryScreen;
-    showCategoryScreen = function() {
-        const categories = Object.keys(wordData);
-        const container = document.getElementById("category-container");
-        if (container) {
-            container.innerHTML = "";
-            let sortedCategories = [];
-            const normalOrderBefore = ["学校の活動・行事", "スポーツ", "楽器・音楽", "乗り物", "家・家具", "自然", "街の施設（お出かけ）", "街の施設（駅・公共など）", "職業（仕事）", "動物"];
-            normalOrderBefore.forEach(cat => {
-                if (categories.includes(cat)) sortedCategories.push(cat);
-            });
-            if (categories.includes("身の回りのもの")) {
-                sortedCategories.push("身の回りのもの");
-            }
-            const normalOrderAfter = ["体", "不規則動詞 (過去形)", "不規則動詞 (過去分詞)", "形容詞・副詞 (比較級)", "形容詞・副詞 (最上級)"];
-            normalOrderAfter.forEach(cat => {
-                if (categories.includes(cat)) sortedCategories.push(cat);
-            });
-            categories.forEach(cat => {
-                if (!sortedCategories.includes(cat)) sortedCategories.push(cat);
-            });
-            sortedCategories.forEach(category => {
-                const button = document.createElement("button");
-                button.className = "category-button";
-                button.innerText = category;
-                button.onclick = () => selectCategory(category);
-                container.appendChild(button);
-            });
-            return;
-        }
-        originalShowCategoryScreen();
-    };
-  showCategoryScreen();
-};
-
-// ==========================================
-
-        // 発音機能（現在出題中の英単語を喋らせる）
-    function speakWord() {
-
-    // 音声機能対応チェック
+// 発音機能（現在出題中の英単語を喋らせる）
+function speakWord() {
     if (!('speechSynthesis' in window)) {
         alert('このブラウザは音声再生に対応していません。Chromeをご利用ください。');
         return;
     }
 
     const currentQuestion = currentWords[currentIndex];
-
-    // 「～」や「~」を除去して読み上げ
-let word = currentQuestion.english
-        .replace(/～/g, '')
-        .replace(/~/g, '')
-        .trim();
-if (
-    word === "read" &&
-    currentQuestion.japanese.includes("過去")
-) {
-    word = "red";
-}
-    // 前回の読み上げを停止
+    let word = currentQuestion.english.replace(/～/g, '').replace(/~/g, '').trim();
+    
+    if (word === "read" && currentQuestion.japanese.includes("過去")) {
+        word = "red";
+    }
+    
     speechSynthesis.cancel();
 
     const uttr = new SpeechSynthesisUtterance(word);
@@ -305,6 +260,9 @@ if (
 
     speechSynthesis.speak(uttr);
 }
-    </script>
+
+// 最初にカテゴリ選択画面を起動
+showCategoryScreen();
+</script>
 </body>
 </html>
