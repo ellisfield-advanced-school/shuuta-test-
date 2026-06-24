@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>語句整序（並び替え）クイズ - エリスフィールド進学会</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        
+        /* ヘッダー・タイトル部分のスタイリング */
+        .brand-header {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #7f8c8d;
+            letter-spacing: 0.1em;
+            margin-bottom: 5px;
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #2c3e50;
+        }
+        
+        .mode-select, .quiz-screen, .result-screen {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #2980b9; }
+        .btn-secondary { background-color: #e67e22; }
+        .btn-secondary:hover { background-color: #d35400; }
+        .btn-reset { background-color: #95a5a6; }
+        .btn-reset:hover { background-color: #7f8c8d; }
+        
+        .progress { font-size: 14px; color: #7f8c8d; text-align: right; margin-bottom: 10px; }
+        .japanese-text { font-size: 18px; font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
+        
+        /* エリア共通 */
+        .word-area {
+            min-height: 60px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-content: center;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        #options-area { border: 2px solid #3498db; background-color: #fff; }
+
+        /* 単語チップ */
+        .word-chip {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 16px;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        .word-chip:hover { background-color: #d5dbdb; transform: scale(1.05); }
+        
+        /* 先頭大文字化のスタイル適用（JSで制御） */
+        .capitalize { text-transform: capitalize; }
+
+        .controls { display: flex; gap: 10px; }
+        .feedback { font-size: 18px; font-weight: bold; text-align: center; margin-top: 15px; min-height: 27px; }
+        .correct { color: #2ecc71; }
+        .incorrect { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="mode-screen" class="mode-select active">
+        <div class="brand-header">エリスフィールド進学会</div>
+        <h1>語句整序クイズ</h1>
+        <button class="btn" onclick="startQuiz('現在完了形')">現在完了形</button>
+        <button class="btn" onclick="startQuiz('現在進行形')">現在進行形</button>
+        <button class="btn btn-secondary" onclick="startQuiz('ミックス')">単元ミックスモード</button>
+    </div>
+
+    <div id="quiz-screen" class="quiz-screen">
+        <div class="brand-header">エリスフィールド進学会</div>
+        <div class="progress">問題: <span id="current-q-num">1</span> / <span id="total-q-num">10</span></div>
+        <div id="japanese-question" class="japanese-text"></div>
+        
+        <p style="margin:0 0 5px 0; font-size:12px; color:#7f8c8d;">【解答エリア】</p>
+        <div id="answer-area" class="word-area"></div>
+        
+        <p style="margin:0 0 5px 0; font-size:12px; color:#7f8c8d;">【選択肢】（タップして移動）</p>
+        <div id="options-area" class="word-area"></div>
+        
+        <div class="controls">
+            <button class="btn btn-reset" onclick="resetCurrentQuestion()">リセット</button>
+            <button class="btn" id="submit-btn" onclick="checkAnswer()">決定</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <div id="result-screen" class="result-screen">
+        <div class="brand-header">エリスフィールド進学会</div>
+        <h1>結果発表</h1>
+        <p style="font-size: 20px; text-align: center;" id="score-text"></p>
+        <button class="btn" onclick="toModeScreen()">タイトルに戻る</button>
+    </div>
+</div>
+
+<script>
+// 問題データ群
+const quizData = [
+    // 現在完了形
+    { category: "現在完了形", japanese: "あなたは今まで北海道に行ったことがありますか。", correct: ["have", "you", "ever", "been", "to", "hokkaido", "?"] },
+    { category: "現在完了形", japanese: "私はまだ宿題を終えていません。", correct: ["i", "haven't", "finished", "my", "homework", "yet", "."] },
+    { category: "現在完了形", japanese: "トムは3年間ずっと日本に住んでいます。", correct: ["tom", "has", "lived", "in", "japan", "for", "three", "years", "."] },
+    { category: "現在完了形", japanese: "私は一度もその映画を見たことがありません。", correct: ["i", "have", "never", "seen", "that", "movie", "."] },
+    { category: "現在完了形", japanese: "ケンはもう出発してしまいましたか。", correct: ["has", "ken", "already", "left", "?"] },
+    // 現在進行形
+    { category: "現在進行形", japanese: "彼は今、公園で走っています。", correct: ["he", "is", "running", "in", "the", "park", "now", "."] },
+    { category: "現在進行形", japanese: "あなたは今、何をしていますか。", correct: ["what", "are", "you", "doing", "now", "?"] },
+    { category: "現在進行形", japanese: "私たちは今、英語を勉強していません。", correct: ["we", "aren't", "studying", "english", "now", "."] },
+    { category: "現在進行形", japanese: "トムとケンはテニスをしています。 ", correct: ["tom", "and", "ken", "are", "playing", "tennis", "."] },
+    { category: "現在進行形", japanese: "彼女は今、音楽を聞いていますか。", correct: ["is", "she", "listening", "to", "music", "now", "?"] }
+];
+
+let currentQuestions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let selectedWords = [];
+let remainingWords = [];
+
+// 配列をシャッフルする関数（Fisher-Yates）
+function shuffle(array) {
+    const clone = [...array];
+    for (let i = clone.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [clone[i], clone[j]] = [clone[j], clone[i]];
+    }
+    return clone;
+}
+
+// クイズ開始
+function startQuiz(mode) {
+    if (mode === 'ミックス') {
+        currentQuestions = shuffle(quizData);
+    } else {
+        currentQuestions = shuffle(quizData.filter(q => q.category === mode));
+    }
+    
+    currentQuestions = currentQuestions.slice(0, 10);
+    currentQuestionIndex = 0;
+    score = 0;
+    
+    document.getElementById("mode-screen").classList.remove("active");
+    document.getElementById("quiz-screen").classList.add("active");
+    document.getElementById("total-q-num").textContent = currentQuestions.length;
+    
+    loadQuestion();
+}
+
+// 問題の読み込み
+function loadQuestion() {
+    const q = currentQuestions[currentQuestionIndex];
+    document.getElementById("current-q-num").textContent = currentQuestionIndex + 1;
+    document.getElementById("japanese-question").textContent = `[${q.category}] ${q.japanese}`;
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("submit-btn").disabled = false;
+    
+    selectedWords = [];
+    remainingWords = shuffle(q.correct);
+    
+    renderChips();
+}
+
+// チップ（単語）の描画
+function renderChips() {
+    const answerArea = document.getElementById("answer-area");
+    const optionsArea = document.getElementById("options-area");
+    
+    answerArea.innerHTML = "";
+    optionsArea.innerHTML = "";
+    
+    selectedWords.forEach((word, index) => {
+        const chip = document.createElement("div");
+        chip.className = "word-chip";
+        chip.textContent = word;
+        
+        if (index === 0 && isLetter(word)) {
+            chip.classList.add("capitalize");
+        }
+        
+        chip.onclick = () => {
+            selectedWords.splice(index, 1);
+            remainingWords.push(word);
+            renderChips();
+        };
+        answerArea.appendChild(chip);
+    });
+    
+    remainingWords.forEach((word, index) => {
+        const chip = document.createElement("div");
+        chip.className = "word-chip";
+        chip.textContent = word;
+        chip.onclick = () => {
+            remainingWords.splice(index, 1);
+            selectedWords.push(word);
+            renderChips();
+        };
+        optionsArea.appendChild(chip);
+    });
+}
+
+function isLetter(str) {
+    return str.length > 0 && str[0].match(/[a-z]/i);
+}
+
+function resetCurrentQuestion() {
+    const q = currentQuestions[currentQuestionIndex];
+    selectedWords = [];
+    remainingWords = shuffle(q.correct);
+    document.getElementById("feedback").textContent = "";
+    renderChips();
+}
+
+function checkAnswer() {
+    const q = currentQuestions[currentQuestionIndex];
+    const feedback = document.getElementById("feedback");
+    
+    if (remainingWords.length > 0) {
+        feedback.className = "feedback incorrect";
+        feedback.textContent = "すべての単語を並べ替えてください。";
+        return;
+    }
+    
+    let isCorrect = true;
+    for(let i = 0; i < q.correct.length; i++) {
+        if(selectedWords[i].toLowerCase() !== q.correct[i].toLowerCase()) {
+            isCorrect = false;
+            break;
+        }
+    }
+    
+    document.getElementById("submit-btn").disabled = true;
+    
+    if (isCorrect) {
+        feedback.className = "feedback correct";
+        feedback.textContent = "正解！ 〇";
+        score++;
+    } else {
+        feedback.className = "feedback incorrect";
+        const displayCorrect = [...q.correct];
+        if(isLetter(displayCorrect[0])) displayCorrect[0] = displayCorrect[0].charAt(0).toUpperCase() + displayCorrect[0].slice(1);
+        feedback.textContent = `不正解 × 【正解】${displayCorrect.join(" ").replace(/\s+(\.|\?)/g, "$1")}`;
+    }
+    
+    setTimeout(() => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < currentQuestions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }, 2000);
+}
+
+function showResult() {
+    document.getElementById("quiz-screen").classList.remove("active");
+    document.getElementById("result-screen").classList.add("active");
+    document.getElementById("score-text").textContent = `${currentQuestions.length}問中 ${score}問 正解でした！`;
+}
+
+function toModeScreen() {
+    document.getElementById("result-screen").classList.remove("active");
+    document.getElementById("mode-screen").classList.add("active");
+}
+</script>
+</body>
+</html>
