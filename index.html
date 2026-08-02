@@ -352,9 +352,6 @@ function startQuiz(category) {
     currentCategory = category; 
     currentWords = [...wordData[category]].sort(() => Math.random() - 0.5);
     
-    // 最大10問に出題数を制限
-    if (currentWords.length > 10) { currentWords = currentWords.slice(0, 10); }
-    
     currentIndex = 0; 
     score = 0;
     
