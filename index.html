@@ -612,6 +612,10 @@ function speakWord() {
 
     const currentQuestion = currentWords[currentIndex];
     let word = currentQuestion.english.replace(/～/g, '').replace(/~/g, '').trim();
+
+if (word === "mine") {
+    word = "myne";
+}
     
     if (word === "read" && currentQuestion.japanese.includes("過去")) {
         word = "red";
